@@ -68,3 +68,4 @@ Monitored folders, sensitive filenames, keywords, and rule thresholds can be cus
 
 ## License
 MIT
+# SecureWatch

@@ -40,6 +40,11 @@ def index():
                            app_name=config.APP_NAME, version=config.APP_VERSION)
 
 
+@bp.route("/healthz")
+def healthz():
+    return jsonify({"status": "healthy"}), 200
+
+
 @bp.route("/alerts-page")
 def alerts_page():
     severity = request.args.get("severity", "")

@@ -14,7 +14,7 @@ load_dotenv()
 APP_NAME = "SecureWatch"
 APP_VERSION = "1.0.0"
 FLASK_HOST = os.environ.get("FLASK_HOST", "0.0.0.0")
-FLASK_PORT = int(os.environ.get("FLASK_PORT", 5000))
+FLASK_PORT = int(os.environ.get("FLASK_PORT", os.environ.get("PORT", 5000)))
 FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() in ("true", "1", "yes")
 SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(24).hex() if os.environ.get("FLASK_DEBUG") != "True" else "securewatch-secret-key-change-in-production")
 

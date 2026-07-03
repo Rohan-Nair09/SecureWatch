@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Event Log{% endblock %}
+{% block page_title %}Audit Event Log{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card stat-blue">
+      <div class="stat-icon"><i class="bi bi-activity"></i></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ stats.total_events }}</div>
+        <div class="stat-label">Total Events</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card stat-purple">
+      <div class="stat-icon"><i class="bi bi-file-earmark-lock-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ stats.sensitive_transfers }}</div>
+        <div class="stat-label">Sensitive Events</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card stat-orange">
+      <div class="stat-icon"><i class="bi bi-person-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ users|length }}</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card stat-red">
+      <div class="stat-icon"><i class="bi bi-usb-drive-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ stats.usb_transfers }}</div>
+        <div class="stat-label">USB Transfers</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="chart-card mb-4">
+  <div class="chart-card-header">
+    <div class="chart-card-title">
+      <i class="bi bi-funnel-fill text-accent me-2"></i>Filter Events
+    </div>
+  </div>
+  <div class="p-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="sw-label">Search</label>
+        <input type="text" name="search" value="{{ search }}" class="form-control sw-input"
+               placeholder="Filename, path…" />
+      </div>
+      <div class="col-md-2">
+        <label class="sw-label">Event Type</label>
+        <select name="event_type" class="form-select sw-input">
+          <option value="">All Types</option>
+          {% for t in ["created","modified","deleted","moved","copied"] %}
+          <option value="{{ t }}" {% if event_type==t %}selected{% endif %}>{{ t|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="sw-label">User</label>
+        <select name="user" class="form-select sw-input">
+          <option value="">All Users</option>
+          {% for u in users %}
+          <option value="{{ u.username }}" {% if user==u.username %}selected{% endif %}>{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-accent"><i class="bi bi-search me-1"></i>Search</button>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('dashboard.events_page') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Events Table -->
+<div class="chart-card">
+  <div class="chart-card-header">
+    <div class="chart-card-title">
+      <i class="bi bi-journal-text text-accent me-2"></i>
+      File System Events
+    </div>
+    <div class="chart-card-actions">
+      <span class="text-muted small">{{ events|length }} events — page {{ page }}</span>
+    </div>
+  </div>
+
+  {% if events %}
+  <div class="table-responsive">
+    <table class="table sw-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Event</th>
+          <th>Sensitive</th>
+          <th>Filename</th>
+          <th>Source Path</th>
+          <th>Destination</th>
+          <th>Size</th>
+          <th>User</th>
+          <th>Process</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in events %}
+        <tr class="{% if e.is_sensitive %}row-sensitive{% endif %}">
+          <td><span class="mono-text">#{{ e.id }}</span></td>
+          <td>
+            <span class="event-badge event-{{ e.event_type }}">
+              {% if e.event_type == "created"  %}<i class="bi bi-plus-circle me-1"></i>{% endif %}
+              {% if e.event_type == "modified" %}<i class="bi bi-pencil me-1"></i>{% endif %}
+              {% if e.event_type == "deleted"  %}<i class="bi bi-trash me-1"></i>{% endif %}
+              {% if e.event_type == "moved"    %}<i class="bi bi-arrows-move me-1"></i>{% endif %}
+              {% if e.event_type == "copied"   %}<i class="bi bi-copy me-1"></i>{% endif %}
+              {{ e.event_type|title }}
+            </span>
+          </td>
+          <td>
+            {% if e.is_sensitive %}
+            <span class="sev-badge sev-high" title="Sensitive File">
+              <i class="bi bi-shield-fill-exclamation"></i>
+            </span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td><span class="mono-text filename-text">{{ e.filename }}</span></td>
+          <td>
+            <span class="path-text" title="{{ e.source_path }}">
+              {{ (e.source_path or '—')[-50:] }}
+            </span>
+          </td>
+          <td>
+            <span class="path-text" title="{{ e.destination_path }}">
+              {% if e.destination_path %}{{ e.destination_path[-45:] }}{% else %}—{% endif %}
+            </span>
+          </td>
+          <td><span class="mono-text">{{ e.file_size|fmt_size }}</span></td>
+          <td><span class="user-chip-sm"><i class="bi bi-person me-1"></i>{{ e.user or '—' }}</span></td>
+          <td><span class="process-badge">{{ (e.process_name or 'unknown')[:20] }}</span></td>
+          <td><span class="ts-text">{{ e.timestamp|fmt_ts }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Pagination -->
+  <div class="d-flex justify-content-between align-items-center p-3">
+    <span class="text-muted small">Page {{ page }}</span>
+    <div>
+      {% if page > 1 %}
+      <a href="{{ url_for('dashboard.events_page', page=page-1, search=search, event_type=event_type, user=user) }}"
+         class="btn btn-sm btn-outline-secondary me-1">
+        <i class="bi bi-chevron-left"></i> Prev
+      </a>
+      {% endif %}
+      {% if events|length == per_page %}
+      <a href="{{ url_for('dashboard.events_page', page=page+1, search=search, event_type=event_type, user=user) }}"
+         class="btn btn-sm btn-outline-secondary">
+        Next <i class="bi bi-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-journal empty-icon"></i>
+    <h5 class="mt-3">No Events Found</h5>
+    <p class="text-muted">Start monitoring or run the simulation script to populate events.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

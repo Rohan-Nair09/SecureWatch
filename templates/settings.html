@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="d-flex gap-3 text-muted small p-2 rounded bg-dark border border-secondary" style="width: fit-content;">
+      <span><i class="bi bi-folder-fill me-1"></i> {{ display_folders|length }} Monitored Folders</span>
+      <span class="text-secondary">|</span>
+      <span><i class="bi bi-file-earmark-lock-fill me-1"></i> {{ config.SENSITIVE_FILENAMES|length }} Sensitive Filenames</span>
+      <span class="text-secondary">|</span>
+      <span><i class="bi bi-tags-fill me-1"></i> {{ config.SENSITIVE_EXTENSIONS|length }} Sensitive Extensions</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Monitor Control -->
+  <div class="col-lg-6">
+    <div class="chart-card mb-4">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-cpu-fill text-accent me-2"></i>Monitor Control
+        </div>
+      </div>
+      <div class="p-4">
+        <div class="monitor-status-row mb-3">
+          <div class="monitor-label">
+            <i class="bi bi-folder-fill me-2"></i>File System Monitor
+          </div>
+          <div class="monitor-status-indicator">
+            <span class="status-dot-lg {% if monitor.file_monitor %}status-active{% else %}status-inactive{% endif %}"></span>
+            <span class="{% if monitor.file_monitor %}text-success{% else %}text-danger{% endif %}">
+              {{ 'Running' if monitor.file_monitor else 'Stopped' }}
+            </span>
+          </div>
+        </div>
+        <div class="monitor-status-row mb-4">
+          <div class="monitor-label">
+            <i class="bi bi-usb-drive-fill me-2"></i>USB Monitor
+          </div>
+          <div class="monitor-status-indicator">
+            <span class="status-dot-lg {% if monitor.usb_monitor %}status-active{% else %}status-inactive{% endif %}"></span>
+            <span class="{% if monitor.usb_monitor %}text-success{% else %}text-danger{% endif %}">
+              {{ 'Running' if monitor.usb_monitor else 'Stopped' }}
+            </span>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <form method="post" action="{{ url_for('dashboard.start_monitor') }}" class="flex-fill">
+            <button type="submit" class="btn btn-success w-100"
+              {% if monitor.file_monitor %}disabled{% endif %}>
+              <i class="bi bi-play-fill me-1"></i>Start Monitoring
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('dashboard.stop_monitor') }}" class="flex-fill">
+            <button type="submit" class="btn btn-danger w-100"
+              {% if not monitor.file_monitor %}disabled{% endif %}>
+              <i class="bi bi-stop-fill me-1"></i>Stop Monitoring
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detection Thresholds -->
+  <div class="col-lg-6">
+    <div class="chart-card mb-4">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-sliders text-accent me-2"></i>Detection Thresholds
+        </div>
+        <span class="badge bg-secondary">Read-only (edit config.py)</span>
+      </div>
+      <div class="p-4">
+        <div class="threshold-item">
+          <span class="threshold-label">Bulk Transfer Threshold</span>
+          <span class="threshold-value">{{ config.BULK_TRANSFER_THRESHOLD }} files / {{ config.BULK_TRANSFER_WINDOW_MINUTES }} min</span>
+        </div>
+        <div class="threshold-item">
+          <span class="threshold-label">Large File Threshold</span>
+          <span class="threshold-value">{{ config.LARGE_FILE_THRESHOLD_MB }} MB</span>
+        </div>
+        <div class="threshold-item">
+          <span class="threshold-label">Repeated Access</span>
+          <span class="threshold-value">{{ config.REPEATED_ACCESS_THRESHOLD }} times / {{ config.REPEATED_ACCESS_WINDOW_MINUTES }} min</span>
+        </div>
+        <div class="threshold-item">
+          <span class="threshold-label">USB Poll Interval</span>
+          <span class="threshold-value">{{ config.USB_POLL_INTERVAL }}s</span>
+        </div>
+        <div class="threshold-item">
+          <span class="threshold-label">Dashboard Refresh</span>
+          <span class="threshold-value">{{ config.DASHBOARD_REFRESH_INTERVAL }}s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="chart-card mb-4">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-database-fill-gear text-accent me-2"></i>Data Management
+        </div>
+      </div>
+      <div class="p-4">
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <a href="{{ url_for('dashboard.api_export_alerts_csv') }}" class="btn btn-outline-info flex-fill">
+            <i class="bi bi-filetype-csv me-1"></i>Export Alerts
+          </a>
+          <a href="{{ url_for('dashboard.api_export_events_csv') }}" class="btn btn-outline-info flex-fill">
+            <i class="bi bi-filetype-csv me-1"></i>Export Events
+          </a>
+        </div>
+        
+        <form method="post" action="{{ url_for('dashboard.clear_dashboard') }}" onsubmit="return confirm('WARNING: This will backup the database and then completely clear all dashboard data (Alerts, Events, Integrity Checks). Are you sure?');">
+          <button type="submit" class="btn btn-outline-danger w-100">
+            <i class="bi bi-trash-fill me-1"></i>Clear & Archive Data
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitored Directories -->
+  <div class="col-lg-12">
+    <div class="chart-card mb-4">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-folder-check text-accent me-2"></i>Monitored Directories
+        </div>
+      </div>
+      <div class="p-4">
+        <!-- Add Folder Form -->
+        <form method="POST" action="{{ url_for('dashboard.add_custom_folder') }}" class="mb-4">
+          <label class="form-label fw-bold">Add New Directory to Monitor</label>
+          <div class="input-group">
+            <span class="input-group-text bg-dark text-accent border-secondary"><i class="bi bi-folder-plus"></i></span>
+            <input type="text" name="folder_path" class="form-control bg-dark text-light border-secondary" placeholder="e.g., D:\MySecretProject" required>
+            <button class="btn btn-accent" type="submit">Add Folder</button>
+          </div>
+          <small class="text-muted mt-2 d-block"><i class="bi bi-info-circle me-1"></i>Directory must exist. Critical system folders are not allowed.</small>
+        </form>
+
+        <!-- Folders Table -->
+        <div class="table-responsive">
+          <table class="table table-dark table-hover align-middle mb-0 custom-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Path</th>
+                <th>Type</th>
+                <th>Events</th>
+                <th>Alerts</th>
+                <th>Last Activity</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in display_folders %}
+              <tr>
+                <td>
+                  {% if d.exists %}
+                    <span class="badge bg-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-danger">Missing</span>
+                  {% endif %}
+                </td>
+                <td class="text-break"><i class="bi bi-folder-fill text-accent me-2"></i>{{ d.path }}</td>
+                <td>
+                  {% if d.is_custom %}
+                    <span class="badge bg-primary text-light">Custom</span>
+                  {% else %}
+                    <span class="badge bg-secondary">System Default</span>
+                  {% endif %}
+                </td>
+                <td>{{ d.stats.event_count }}</td>
+                <td>
+                  {% if d.stats.alert_count > 0 %}
+                    <span class="text-danger fw-bold">{{ d.stats.alert_count }}</span>
+                  {% else %}
+                    <span class="text-muted">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted small">{{ d.stats.last_activity | fmt_ts if d.stats.last_activity else '—' }}</td>
+                <td class="text-end">
+                  {% if d.is_custom %}
+                    <form method="POST" action="{{ url_for('dashboard.remove_custom_folder') }}" class="d-inline">
+                      <input type="hidden" name="folder_path" value="{{ d.path }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Folder">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="Default folders cannot be removed via UI">
+                      <i class="bi bi-lock-fill"></i>
+                    </button>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="text-center text-muted py-4">No monitored directories configured.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sensitive File Policy -->
+  <div class="col-lg-12">
+    <div class="chart-card">
+      <div class="chart-card-header d-flex justify-content-between align-items-center">
+        <div class="chart-card-title">
+          <i class="bi bi-file-earmark-lock-fill text-accent me-2"></i>Sensitive File Policy
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('dashboard.export_policy') }}" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-download"></i> Export
+          </a>
+          <form method="post" action="{{ url_for('dashboard.import_policy') }}" enctype="multipart/form-data" class="d-inline" onsubmit="return confirm('This will merge the uploaded policy with existing rules. Continue?');">
+            <label class="btn btn-sm btn-outline-success mb-0" style="cursor: pointer;">
+              <i class="bi bi-upload"></i> Import
+              <input type="file" name="policy_file" accept=".json" class="d-none" onchange="this.form.submit()">
+            </label>
+          </form>
+        </div>
+      </div>
+      
+      <div class="p-4 border-bottom border-secondary">
+        <!-- Add Policy Form -->
+        <form method="POST" action="{{ url_for('dashboard.add_custom_policy') }}">
+          <label class="form-label fw-bold">Add Custom Policy Rule</label>
+          <div class="input-group">
+            <select name="policy_type" class="form-select bg-dark text-light border-secondary" style="max-width: 150px;">
+              <option value="filename">Filename</option>
+              <option value="extension">Extension</option>
+            </select>
+            <input type="text" name="policy_value" class="form-control bg-dark text-light border-secondary" placeholder="e.g., secret.txt or .key" required>
+            <select name="severity" class="form-select bg-dark text-light border-secondary" style="max-width: 150px;">
+              <option value="CRITICAL" class="text-danger fw-bold">CRITICAL</option>
+              <option value="HIGH" class="text-warning fw-bold" selected>HIGH</option>
+              <option value="MEDIUM" class="text-info fw-bold">MEDIUM</option>
+            </select>
+            <button class="btn btn-accent" type="submit">Add Rule</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-4 d-flex flex-wrap gap-5">
+        {% set custom_policies = config.load_custom_policy() %}
+        <div class="flex-fill">
+          <div class="sw-label mb-3">Sensitive Filenames</div>
+          <div class="tag-cloud">
+            {% for fn in config.SENSITIVE_FILENAMES | sort %}
+              {% set custom_match = custom_policies | selectattr('type', 'equalto', 'filename') | selectattr('value', 'equalto', fn) | list %}
+              <span class="file-tag d-inline-flex align-items-center gap-2">
+                {{ fn }}
+                {% if custom_match %}
+                  <span class="badge bg-dark border border-secondary" style="font-size: 0.65em;">{{ custom_match[0].severity }}</span>
+                  <form method="post" action="{{ url_for('dashboard.remove_custom_policy') }}" class="d-inline m-0 p-0">
+                    <input type="hidden" name="policy_type" value="filename">
+                    <input type="hidden" name="policy_value" value="{{ fn }}">
+                    <button type="submit" class="btn-close btn-close-white" style="font-size: 0.5em; opacity: 0.8;" title="Remove"></button>
+                  </form>
+                {% endif %}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="flex-fill">
+          <div class="sw-label mb-3">Sensitive Extensions</div>
+          <div class="tag-cloud">
+            {% for ext in config.SENSITIVE_EXTENSIONS | sort %}
+              {% set custom_match = custom_policies | selectattr('type', 'equalto', 'extension') | selectattr('value', 'equalto', ext) | list %}
+              <span class="ext-tag d-inline-flex align-items-center gap-2">
+                {{ ext }}
+                {% if custom_match %}
+                  <span class="badge bg-dark border border-secondary" style="font-size: 0.65em;">{{ custom_match[0].severity }}</span>
+                  <form method="post" action="{{ url_for('dashboard.remove_custom_policy') }}" class="d-inline m-0 p-0">
+                    <input type="hidden" name="policy_type" value="extension">
+                    <input type="hidden" name="policy_value" value="{{ ext }}">
+                    <button type="submit" class="btn-close btn-close-white" style="font-size: 0.5em; opacity: 0.8;" title="Remove"></button>
+                  </form>
+                {% endif %}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Alert Dashboard{% endblock %}
+
+{% block content %}
+<!-- Overview Cards -->
+<div class="row g-3 mb-4" id="overview-cards">
+
+  <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="stat-card stat-blue" id="card-total-events">
+      <div class="stat-icon"><i class="bi bi-activity"></i></div>
+      <div class="stat-body">
+        <div class="stat-value" data-stat="total_events">{{ stats.total_events }}</div>
+        <div class="stat-label">Total File Events</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="stat-card stat-orange" id="card-active-alerts">
+      <div class="stat-icon"><i class="bi bi-bell-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value {% if stats.active_alerts > 0 %}pulse-text{% endif %}" data-stat="active_alerts">{{ stats.active_alerts }}</div>
+        <div class="stat-label">Active Alerts</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="stat-card stat-red" id="card-critical">
+      <div class="stat-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value {% if stats.critical_alerts > 0 %}pulse-text{% endif %}" data-stat="critical_alerts">{{ stats.critical_alerts }}</div>
+        <div class="stat-label">Critical Alerts</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="stat-card stat-yellow" id="card-integrity">
+      <div class="stat-icon"><i class="bi bi-fingerprint"></i></div>
+      <div class="stat-body">
+        <div class="stat-value" data-stat="integrity_violations">{{ stats.integrity_violations }}</div>
+        <div class="stat-label">Integrity Violations</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="stat-card stat-purple" id="card-sensitive">
+      <div class="stat-icon"><i class="bi bi-file-earmark-lock-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value" data-stat="sensitive_transfers">{{ stats.sensitive_transfers }}</div>
+        <div class="stat-label">Sensitive Transfers</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="stat-card stat-red" id="card-usb">
+      <div class="stat-icon"><i class="bi bi-usb-drive-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value" data-stat="usb_transfers">{{ stats.usb_transfers }}</div>
+        <div class="stat-label">USB Transfers</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+
+  <!-- Alert Trends (Line Chart) -->
+  <div class="col-xl-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-graph-up-arrow text-accent me-2"></i>
+          Alert Trends (Last 7 Days)
+        </div>
+        <div class="chart-card-actions">
+          <select class="form-select form-select-sm sw-select" id="trend-days" onchange="loadTrends(this.value)">
+            <option value="7" selected>7 days</option>
+            <option value="14">14 days</option>
+            <option value="30">30 days</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-body">
+        <canvas id="trendsChart" height="90"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Violations Donut -->
+  <div class="col-xl-4">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-pie-chart-fill text-accent me-2"></i>
+          Violation Types
+        </div>
+      </div>
+      <div class="chart-body d-flex align-items-center justify-content-center">
+        <canvas id="violationsChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Row -->
+<div class="row g-3 mb-4">
+
+  <!-- Activity Timeline -->
+  <div class="col-xl-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-clock-history text-accent me-2"></i>
+          Today's Activity Timeline
+        </div>
+      </div>
+      <div class="chart-body">
+        <canvas id="timelineChart" height="130"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Sensitive Files -->
+  <div class="col-xl-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-bar-chart-fill text-accent me-2"></i>
+          Most Accessed Sensitive Files
+        </div>
+      </div>
+      <div class="chart-body">
+        <canvas id="sensitiveChart" height="130"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Live Alert Panel -->
+<div class="row g-3">
+  <div class="col-12">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-shield-exclamation text-accent me-2"></i>
+          Live Alert Feed
+          <span class="live-indicator ms-2"><span class="live-dot"></span>LIVE</span>
+        </div>
+        <div class="chart-card-actions">
+          <form method="post" action="{{ url_for('dashboard.clear_dashboard') }}" onsubmit="return confirm('WARNING: This will backup the database and then completely clear all dashboard data. Are you sure?');" class="d-inline me-2">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash-fill"></i> Clear
+            </button>
+          </form>
+          <a href="{{ url_for('dashboard.alerts_page') }}" class="btn btn-sm btn-outline-accent">
+            View All <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+      <div class="alert-feed" id="live-alert-feed">
+        <div class="loading-spinner">
+          <div class="spinner-border text-accent spinner-border-sm" role="status"></div>
+          <span class="ms-2">Loading alerts…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  initDashboard();
+});
+</script>
+{% endblock %}

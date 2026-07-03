@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Integrity Monitor{% endblock %}
+{% block page_title %}File Integrity Monitoring{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card stat-green">
+      <div class="stat-icon"><i class="bi bi-shield-fill-check"></i></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ checks|selectattr("status","equalto","MATCH")|list|length }}</div>
+        <div class="stat-label">Hash Matches</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card stat-red">
+      <div class="stat-icon"><i class="bi bi-shield-fill-x"></i></div>
+      <div class="stat-body">
+        <div class="stat-value pulse-text">{{ stats.integrity_violations }}</div>
+        <div class="stat-label">Violations (Mismatches)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card stat-blue">
+      <div class="stat-icon"><i class="bi bi-file-earmark-plus-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ checks|selectattr("status","equalto","NEW")|list|length }}</div>
+        <div class="stat-label">New Files Baselined</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="chart-card mb-4">
+  <div class="p-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="sw-label">Filter by Status</label>
+        <select name="status" class="form-select sw-input">
+          <option value="">All Statuses</option>
+          <option value="MISMATCH" {% if status_filter=="MISMATCH" %}selected{% endif %}>Mismatch (Violations)</option>
+          <option value="MATCH"    {% if status_filter=="MATCH"    %}selected{% endif %}>Match</option>
+          <option value="NEW"      {% if status_filter=="NEW"      %}selected{% endif %}>New Baseline</option>
+          <option value="DELETED"  {% if status_filter=="DELETED"  %}selected{% endif %}>Deleted</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-accent">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('dashboard.integrity_page') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Integrity Table -->
+<div class="chart-card">
+  <div class="chart-card-header">
+    <div class="chart-card-title">
+      <i class="bi bi-fingerprint text-accent me-2"></i>
+      SHA-256 Integrity Checks
+    </div>
+    <div class="chart-card-actions">
+      <span class="text-muted small">{{ checks|length }} records</span>
+    </div>
+  </div>
+
+  {% if checks %}
+  <div class="table-responsive">
+    <table class="table sw-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Status</th>
+          <th>Filename</th>
+          <th>File Path</th>
+          <th>Original Hash (SHA-256)</th>
+          <th>Current Hash (SHA-256)</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in checks %}
+        <tr class="{% if c.status=='MISMATCH' %}row-violation{% elif c.status=='MATCH' %}row-ok{% endif %}">
+          <td><span class="mono-text">#{{ c.id }}</span></td>
+          <td>
+            {% if c.status == "MISMATCH" %}
+            <span class="sev-badge sev-critical">
+              <i class="bi bi-x-circle-fill me-1"></i>MISMATCH
+            </span>
+            {% elif c.status == "MATCH" %}
+            <span class="sev-badge sev-ok">
+              <i class="bi bi-check-circle-fill me-1"></i>MATCH
+            </span>
+            {% elif c.status == "NEW" %}
+            <span class="sev-badge sev-low">
+              <i class="bi bi-plus-circle-fill me-1"></i>NEW
+            </span>
+            {% elif c.status == "DELETED" %}
+            <span class="sev-badge sev-medium">
+              <i class="bi bi-trash-fill me-1"></i>DELETED
+            </span>
+            {% endif %}
+          </td>
+          <td><span class="mono-text filename-text">{{ c.filename }}</span></td>
+          <td>
+            <span class="path-text" title="{{ c.filepath }}">
+              {{ (c.filepath or '—')[-50:] }}
+            </span>
+          </td>
+          <td>
+            <span class="hash-text {% if c.status=='MISMATCH' %}hash-old{% endif %}">
+              {{ (c.original_hash or 'N/A')[:32] }}{% if c.original_hash and c.original_hash|length > 32 %}…{% endif %}
+            </span>
+          </td>
+          <td>
+            <span class="hash-text {% if c.status=='MISMATCH' %}hash-new{% endif %}">
+              {{ (c.current_hash or 'N/A')[:32] }}{% if c.current_hash and c.current_hash|length > 32 %}…{% endif %}
+            </span>
+          </td>
+          <td><span class="ts-text">{{ c.timestamp|fmt_ts }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-fingerprint empty-icon"></i>
+    <h5 class="mt-3">No Integrity Records</h5>
+    <p class="text-muted">Integrity checks will appear here as sensitive files are monitored.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

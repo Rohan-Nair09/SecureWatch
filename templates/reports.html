@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Security Reports{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Generate Reports -->
+  <div class="col-lg-5">
+    <div class="chart-card mb-4">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-file-earmark-pdf-fill text-accent me-2"></i>Generate PDF Report
+        </div>
+      </div>
+      <div class="p-4">
+        <p class="text-muted mb-3">
+          Generate a comprehensive PDF security report including executive summary,
+          alert details, integrity violations, and audit log excerpt.
+        </p>
+        <ul class="report-feature-list mb-4">
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Executive Summary with metrics</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Alert table with severity colours</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>SHA-256 integrity violations</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Audit log (last 40 events)</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Dark-themed professional layout</li>
+        </ul>
+        <form method="post" action="{{ url_for('dashboard.generate_pdf') }}">
+          <button type="submit" class="btn btn-accent w-100">
+            <i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF Report
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-file-earmark-spreadsheet-fill text-accent me-2"></i>Generate CSV Export
+        </div>
+      </div>
+      <div class="p-4">
+        <p class="text-muted mb-3">
+          Export raw data as CSV files for analysis in Excel, SIEM tools, or custom scripts.
+        </p>
+        <ul class="report-feature-list mb-4">
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>file_events.csv — all FS events</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>alerts.csv — all security alerts</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>integrity_checks.csv — hash data</li>
+        </ul>
+        <form method="post" action="{{ url_for('dashboard.generate_csv') }}">
+          <button type="submit" class="btn btn-outline-accent w-100">
+            <i class="bi bi-download me-2"></i>Export CSV Reports
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report List -->
+  <div class="col-lg-7">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">
+          <i class="bi bi-folder-fill text-accent me-2"></i>
+          Generated Reports
+        </div>
+        <div class="chart-card-actions">
+          <span class="text-muted small">{{ report_files|length }} files</span>
+        </div>
+      </div>
+
+      {% if report_files %}
+      <div class="p-2">
+        {% for f in report_files %}
+        <div class="report-file-row">
+          <div class="report-file-icon">
+            {% if f.name.endswith('.pdf') %}
+            <i class="bi bi-file-earmark-pdf-fill text-danger fs-3"></i>
+            {% else %}
+            <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-3"></i>
+            {% endif %}
+          </div>
+          <div class="report-file-info">
+            <div class="report-file-name">{{ f.name }}</div>
+            <div class="report-file-meta">
+              <span><i class="bi bi-calendar3 me-1"></i>{{ f.created }}</span>
+              <span class="ms-3"><i class="bi bi-hdd me-1"></i>{{ f.size | int // 1024 }} KB</span>
+            </div>
+          </div>
+          <a href="{{ url_for('dashboard.download_report', filename=f.name) }}"
+             class="btn btn-sm btn-outline-accent ms-auto" download>
+            <i class="bi bi-download me-1"></i>Download
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-folder empty-icon"></i>
+        <h5 class="mt-3">No Reports Generated</h5>
+        <p class="text-muted">Use the buttons on the left to generate your first report.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

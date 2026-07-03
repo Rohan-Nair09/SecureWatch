@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Database
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+!database/custom_folders.json
+!database/custom_policy.json
+
+# Logs
+logs/*.log
+
+# Reports & Screenshots
+reports/output/*
+!reports/output/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
+
+# IDEs / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+{% block page_title %}Security Alerts{% endblock %}
+
+{% block content %}
+<!-- Severity Summary Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('dashboard.alerts_page', severity='CRITICAL') }}" class="stat-card-link">
+      <div class="stat-card stat-red">
+        <div class="stat-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.critical_alerts }}</div>
+          <div class="stat-label">Critical</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('dashboard.alerts_page', severity='HIGH') }}" class="stat-card-link">
+      <div class="stat-card stat-orange">
+        <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.active_alerts }}</div>
+          <div class="stat-label">Active Alerts</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('dashboard.alerts_page', severity='MEDIUM') }}" class="stat-card-link">
+      <div class="stat-card stat-yellow">
+        <div class="stat-icon"><i class="bi bi-info-circle-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.sensitive_transfers }}</div>
+          <div class="stat-label">Sensitive Transfers</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('dashboard.alerts_page', severity='LOW') }}" class="stat-card-link">
+      <div class="stat-card stat-blue">
+        <div class="stat-icon"><i class="bi bi-usb-drive-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.usb_transfers }}</div>
+          <div class="stat-label">USB Transfers</div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="chart-card mb-4">
+  <div class="chart-card-header">
+    <div class="chart-card-title">
+      <i class="bi bi-funnel-fill text-accent me-2"></i>Filter Alerts
+    </div>
+  </div>
+  <div class="p-3">
+    <form method="get" action="{{ url_for('dashboard.alerts_page') }}" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="sw-label">Search</label>
+        <input type="text" name="search" value="{{ search }}" class="form-control sw-input" placeholder="Filename, type, description…" />
+      </div>
+      <div class="col-md-2">
+        <label class="sw-label">Severity</label>
+        <select name="severity" class="form-select sw-input">
+          <option value="">All Severities</option>
+          <option value="CRITICAL" {% if severity=="CRITICAL" %}selected{% endif %}>Critical</option>
+          <option value="HIGH"     {% if severity=="HIGH"     %}selected{% endif %}>High</option>
+          <option value="MEDIUM"   {% if severity=="MEDIUM"   %}selected{% endif %}>Medium</option>
+          <option value="LOW"      {% if severity=="LOW"      %}selected{% endif %}>Low</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="sw-label">Status</label>
+        <select name="status" class="form-select sw-input">
+          <option value="">All Statuses</option>
+          <option value="ACTIVE"        {% if status=="ACTIVE"        %}selected{% endif %}>Active</option>
+          <option value="INVESTIGATING" {% if status=="INVESTIGATING" %}selected{% endif %}>Investigating</option>
+          <option value="RESOLVED"      {% if status=="RESOLVED"      %}selected{% endif %}>Resolved</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="sw-label">User</label>
+        <select name="user" class="form-select sw-input">
+          <option value="">All Users</option>
+          {% for u in users %}
+          <option value="{{ u.username }}" {% if user==u.username %}selected{% endif %}>{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-accent w-100">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+      <div class="col-md-1">
+        <a href="{{ url_for('dashboard.alerts_page') }}" class="btn btn-outline-secondary w-100">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+      <div class="col-md-1">
+        <span class="sw-label">Results: {{ alerts|length }}</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Alerts Table -->
+<div class="chart-card">
+  <div class="chart-card-header">
+    <div class="chart-card-title">
+      <i class="bi bi-table text-accent me-2"></i>Security Alerts
+    </div>
+    <div class="chart-card-actions">
+      <span class="text-muted small">Page {{ page }}</span>
+    </div>
+  </div>
+
+  {% if alerts %}
+  <div class="table-responsive">
+    <table class="table sw-table" id="alerts-table">
+      <thead>
+        <tr>
+          <th style="resize: horizontal; overflow: hidden; min-width: 60px;">ID</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 100px;">Severity</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 120px;">Type</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 150px;">Filename</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 150px;">Destination</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 250px;">Description</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 100px;">User</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 140px;">Timestamp</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 100px;">Status</th>
+          <th style="resize: horizontal; overflow: hidden; min-width: 100px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr class="alert-row alert-row-{{ alert.severity|lower }}" id="alert-row-{{ alert.id }}">
+          <td><span class="mono-text">#{{ alert.id }}</span></td>
+          <td>
+            <span class="sev-badge sev-{{ alert.severity|lower }}">
+              {% if alert.severity == "CRITICAL" %}<i class="bi bi-exclamation-octagon-fill me-1"></i>{% endif %}
+              {% if alert.severity == "HIGH"     %}<i class="bi bi-exclamation-triangle-fill me-1"></i>{% endif %}
+              {% if alert.severity == "MEDIUM"   %}<i class="bi bi-info-circle-fill me-1"></i>{% endif %}
+              {% if alert.severity == "LOW"      %}<i class="bi bi-check-circle me-1"></i>{% endif %}
+              {{ alert.severity }}
+            </span>
+          </td>
+          <td><span class="alert-type-badge">{{ alert.alert_type }}</span></td>
+          <td>
+            {% if alert.filename %}
+            <span class="mono-text filename-text">{{ alert.filename }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if alert.destination_path %}
+            <span class="mono-text filename-text" title="{{ alert.destination_path }}">{{ alert.destination_path }}</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            <span class="desc-text" title="{{ alert.description }}">
+              {{ alert.description or '' }}
+            </span>
+          </td>
+          <td><span class="user-chip-sm"><i class="bi bi-person me-1"></i>{{ alert.user or '—' }}</span></td>
+          <td><span class="ts-text">{{ alert.timestamp|fmt_ts }}</span></td>
+          <td>
+            <span class="status-pill status-{{ (alert.status or 'ACTIVE')|lower }}">
+              {{ alert.status or 'ACTIVE' }}
+            </span>
+          </td>
+          <td>
+            <div class="action-btns">
+              {% if alert.status != 'RESOLVED' %}
+              <button class="btn btn-icon-sm btn-success" title="Resolve"
+                onclick="resolveAlert({{ alert.id }})">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button class="btn btn-icon-sm btn-warning" title="Investigate"
+                onclick="investigateAlert({{ alert.id }})">
+                <i class="bi bi-search"></i>
+              </button>
+              {% else %}
+              <span class="text-muted small">Resolved</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="d-flex justify-content-between align-items-center p-3">
+    <div class="text-muted small">Showing {{ alerts|length }} alerts (page {{ page }})</div>
+    <div class="pagination-btns">
+      {% if page > 1 %}
+      <a href="{{ url_for('dashboard.alerts_page', page=page-1, severity=severity, status=status, user=user, search=search) }}"
+         class="btn btn-sm btn-outline-secondary me-1">
+        <i class="bi bi-chevron-left"></i> Prev
+      </a>
+      {% endif %}
+      {% if alerts|length == per_page %}
+      <a href="{{ url_for('dashboard.alerts_page', page=page+1, severity=severity, status=status, user=user, search=search) }}"
+         class="btn btn-sm btn-outline-secondary">
+        Next <i class="bi bi-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-shield-check-fill empty-icon text-success"></i>
+    <h5 class="mt-3">No Alerts Found</h5>
+    <p class="text-muted">No alerts match your current filter criteria.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function resolveAlert(id) {
+  fetch(`/alerts/${id}/resolve`, {
+    method: "POST",
+    headers: { "X-Requested-With": "XMLHttpRequest" }
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      const row = document.getElementById(`alert-row-${id}`);
+      if (row) {
+        row.querySelector(".status-pill").className = "status-pill status-resolved";
+        row.querySelector(".status-pill").textContent = "RESOLVED";
+        row.querySelector(".action-btns").innerHTML = '<span class="text-muted small">Resolved</span>';
+        row.classList.add("opacity-50");
+      }
+      showToast("Alert resolved successfully.", "success");
+    }
+  });
+}
+function investigateAlert(id) {
+  fetch(`/alerts/${id}/investigate`, {
+    method: "POST",
+    headers: { "X-Requested-With": "XMLHttpRequest" }
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      const pill = document.querySelector(`#alert-row-${id} .status-pill`);
+      if (pill) {
+        pill.className = "status-pill status-investigating";
+        pill.textContent = "INVESTIGATING";
+      }
+      showToast("Alert marked as under investigation.", "info");
+    }
+  });
+}
+</script>
+{% endblock %}

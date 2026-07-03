@@ -6,7 +6,6 @@
 ![Flask](https://img.shields.io/badge/Flask-3.x-green?style=flat-square&logo=flask&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-3-lightgrey?style=flat-square&logo=sqlite&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5-purple?style=flat-square&logo=bootstrap&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 **A real-time host-based intrusion detection and data loss prevention dashboard.**
 
@@ -97,5 +96,4 @@ SecureWatch/
 └── scripts/                # Database simulation scripts
 ```
 
-## 📝 License
-Distributed under the MIT License.
+
